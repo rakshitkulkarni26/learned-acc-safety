@@ -77,7 +77,23 @@ Following `docs/EXPERIMENT_PROTOCOL.md`:
 | `reports/data_ngsim/data_report.json` | Counts per step, recordings found, split sizes, signal quantiles |
 | `reports/data_ngsim/data_report.png` | Distributions, raw vs smoothed acceleration, hours per split |
 
+## Results of the first real run (21 Oct 2026)
+
+| Quantity | Value |
+|---|---|
+| Rows read (US-101 + I-80) | 9,369,320 |
+| Duplicates removed | 704,000 (7.5 %) |
+| Recordings | 3 per site, 15.9–19.5 min, 1,790–2,169 vehicles each |
+| Candidate runs / too short / implausible | 20,994 / 8,151 / 861 |
+| Events kept | 11,982 (162.6 vehicle-hours) |
+| Train / val / test | 6,778 / 1,167 / 4,037 events (85.6 / 15.0 / 62.0 h) |
+| Median gap / speed / time headway | 12.1 m / 27 km/h / 1.8 s |
+| RMS jerk, NGSIM `v_Acc` vs smoothed | 10.2 vs 1.6 m/s³ |
+
 ## Known limitations
+
+- **Constant-speed artefacts in the published data.** 29 % of raw samples have `v_Acc` exactly 0 and 36 % have exactly linear positions (second difference < 1 mm), often at speeds that are multiples of 5 ft/s. NGSIM's own speed column shows the same pattern, so it originates in the data, not in this pipeline. How to handle it (mask, down-weight, or rely more on highD) is decided before Phase 2 training.
+- **Mostly congested traffic** (median 27 km/h, frequent standstill), below typical ACC operating speeds.
 
 - NGSIM contains tracking errors that smoothing cannot fully remove; the plausibility filters catch only the gross ones.
 - The 2 s acceleration window flattens short peaks.

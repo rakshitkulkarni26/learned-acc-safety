@@ -10,7 +10,7 @@ This project trains a car-following policy on real traffic data and asks:
 
 A second question: can those failures be found efficiently **without** relying on unrealistic scenario parameters?
 
-Definitions, baselines and metrics are fixed in advance in [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md).
+Definitions, baselines and metrics are fixed in advance in [`docs/EXPERIMENT_PROTOCOL.md`](docs/EXPERIMENT_PROTOCOL.md). New here? Start with [`docs/PROJECT_GUIDE.md`](docs/PROJECT_GUIDE.md).
 
 ## Pipeline
 
@@ -29,7 +29,7 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 | Phase | Content | Status |
 |---|---|---|
 | 0 | Repo, CI, deterministic simulator, IDM baseline, KPIs, experiment protocol | ✅ |
-| 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits | 🟡 code + tests done, real-data results pending |
+| 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits — **11,982 events, 163 vehicle-hours** | ✅ |
 | 2 | Learned policy: GRU deep ensemble, closed-loop check | ⏳ |
 | 3 | Failure labels, uncertainty vs TTC monitor, shield comparison | ⏳ |
 | 4 | Plausibility-constrained scenario search, OpenSCENARIO + esmini replay | ⏳ |
