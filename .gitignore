@@ -1,0 +1,33 @@
+# Datasets are never committed (highD terms forbid redistribution)
+data/*
+!data/README.md
+
+# Generated outputs
+reports/*
+!reports/.gitkeep
+mlruns/
+models/
+*.pt
+*.ckpt
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

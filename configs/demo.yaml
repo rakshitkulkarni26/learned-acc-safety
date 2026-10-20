@@ -1,0 +1,25 @@
+# Demo scenario: lead vehicle brakes at 4 m/s^2 for 3 s from 90 km/h.
+# Runs in seconds, needs no dataset.
+dt: 0.1
+
+scenario:
+  v_ego0: 25.0        # m/s
+  v_lead0: 25.0       # m/s
+  gap0: 40.0          # m
+  t_brake: 5.0        # s
+  decel: 4.0          # m/s^2
+  brake_duration: 3.0 # s
+  duration: 25.0      # s
+
+idm:
+  v0: 33.3
+  T: 1.5
+  s0: 2.0
+  a: 1.5
+  b: 2.0
+
+vehicle:
+  length: 4.5
+  a_max: 2.5
+  a_min: -8.0
+  tau: 0.3
