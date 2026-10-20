@@ -1,0 +1,27 @@
+# NGSIM preparation (Phase 1). Every processing choice lives here and is
+# explained in docs/DATA.md. Paths are relative to the repository root.
+raw_csv: data/raw/ngsim_trajectories.csv
+interim_parquet: data/interim/ngsim_highway.parquet
+out_dir: data/processed/ngsim
+report_dir: reports/data_ngsim
+
+locations: [us-101, i-80]   # freeway sites only
+dt: 0.1                      # s, NGSIM sampling period (10 Hz)
+recording_tolerance_s: 5.0   # clustering tolerance for recording start times
+
+ego_classes: [2]             # 1 = motorcycle, 2 = car, 3 = truck
+lanes: [1, 2, 3, 4, 5]       # main lanes; excludes auxiliary lanes and ramps
+
+smoothing:
+  position_window_s: 1.0     # Savitzky-Golay window for position and speed
+  accel_window_s: 2.0        # wider window for acceleration (2nd derivative)
+
+events:
+  min_duration_s: 15.0       # shortest car-following event kept
+  max_abs_accel: 8.0         # m/s^2, events with larger values are rejected as tracking errors
+  min_gap_m: 0.5             # m, smaller gaps indicate overlapping boxes / tracking errors
+
+splits:
+  test_recordings_per_location: 1   # last 15-min period of each site held out entirely
+  val_fraction: 0.15                # of ego vehicles in the remaining recordings
+  seed: 42

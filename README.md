@@ -1,6 +1,6 @@
 # When does a learned ACC fail, and does it know?
 
-![CI](https://github.com/<your-username>/learned-acc-safety/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/rakshitkulkarni26/learned-acc-safety/actions/workflows/ci.yml/badge.svg)
 
 Learned components are entering driving functions such as Adaptive Cruise Control, but they are hard to validate: the scenario space is huge and a learned controller can fail in situations nobody thought to test.
 
@@ -29,7 +29,7 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 | Phase | Content | Status |
 |---|---|---|
 | 0 | Repo, CI, deterministic simulator, IDM baseline, KPIs, experiment protocol | ✅ |
-| 1 | NGSIM pipeline: event extraction, smoothing, leakage-safe splits | ⏳ |
+| 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits | 🟡 code + tests done, real-data results pending |
 | 2 | Learned policy: GRU deep ensemble, closed-loop check | ⏳ |
 | 3 | Failure labels, uncertainty vs TTC monitor, shield comparison | ⏳ |
 | 4 | Plausibility-constrained scenario search, OpenSCENARIO + esmini replay | ⏳ |
@@ -38,7 +38,7 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 ## Quickstart (no dataset needed)
 
 ```bash
-git clone https://github.com/<your-username>/learned-acc-safety.git
+git clone https://github.com/rakshitkulkarni26/learned-acc-safety.git
 cd learned-acc-safety
 python -m venv .venv
 # Windows: .venv\Scripts\activate    Linux/macOS: source .venv/bin/activate
@@ -50,13 +50,23 @@ lacc demo                   # IDM baseline, lead vehicle braking
 
 `lacc demo` writes `reports/demo_kpis.json` and `reports/demo_trace.png`.
 
+## Real data (NGSIM)
+
+```bash
+lacc data download          # ~1.5 GB public US DOT trajectory data
+lacc data prepare           # car-following events + data quality report
+```
+
+Processing choices and their validation: [`docs/DATA.md`](docs/DATA.md).
+
 ## Repository layout
 
 ```
 src/lacc/        simulator, controllers, scenarios, metrics, CLI
-tests/           unit tests, safety invariants, scenario regression + known-failure cases
-configs/         versioned scenario / controller / vehicle parameters
-docs/            experiment protocol (pre-registered definitions)
+src/lacc/data/   NGSIM download, cleaning, smoothing, event extraction, splits
+tests/           unit tests, safety invariants, scenario regression, synthetic-data pipeline tests
+configs/         versioned scenario / controller / vehicle / data parameters
+docs/            experiment protocol (pre-registered definitions), data processing
 data/            local only, never committed
 reports/         generated outputs
 ```

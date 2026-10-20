@@ -74,6 +74,14 @@ def main(argv: list[str] | None = None) -> None:
     demo = sub.add_parser("demo", help="run the baseline demo scenario (no dataset needed)")
     demo.add_argument("--config", type=Path, default=Path("configs/demo.yaml"))
     demo.add_argument("--out", type=Path, default=Path("reports"))
+
+    data = sub.add_parser("data", help="dataset download and preparation")
+    data_sub = data.add_subparsers(dest="data_cmd", required=True)
+    dl = data_sub.add_parser("download", help="download the NGSIM trajectory CSV (~1.5 GB)")
+    dl.add_argument("--out", type=Path, default=Path("data/raw/ngsim_trajectories.csv"))
+    prep = data_sub.add_parser("prepare", help="clean, smooth, extract events, split")
+    prep.add_argument("--config", type=Path, default=Path("configs/data_ngsim.yaml"))
+
     args = parser.parse_args(argv)
 
     if args.cmd == "demo":
@@ -82,6 +90,26 @@ def main(argv: list[str] | None = None) -> None:
         for k, v in result["kpis"].items():
             print(f"  {k:<20} {v:.3f}" if isinstance(v, float) else f"  {k:<20} {v}")
         print(f"Wrote {args.out / 'demo_kpis.json'} and {args.out / 'demo_trace.png'}")
+
+    elif args.cmd == "data" and args.data_cmd == "download":
+        from .data.ngsim import download
+
+        print(f"Downloading NGSIM to {args.out} ...")
+        download(args.out)
+
+    elif args.cmd == "data" and args.data_cmd == "prepare":
+        from .data.pipeline import prepare
+
+        report = prepare(args.config)
+        print("\nRecordings found:")
+        for rec, info in report["clean"]["recordings"].items():
+            print(f"  {rec:<12} {info['vehicles']:>5} vehicles  {info['duration_min']:>5} min")
+        print(f"\nEvents: {report['events']['events']}  ({report['events']['event_hours']} h)")
+        print(f"Per split (events): {report['splits']['events_per_split']}")
+        print(f"Test recordings: {report['splits']['test_recordings']}")
+        for w in report["warnings"]:
+            print(f"WARNING: {w}")
+        print("\nReport: reports/data_ngsim/data_report.json and data_report.png")
 
 
 if __name__ == "__main__":
