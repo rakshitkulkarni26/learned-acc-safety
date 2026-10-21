@@ -59,6 +59,49 @@ Reported: collisions, events with violation, spacing RMSE against the human (how
 | `reports/safety/safety_report.png` | AUROC with CIs, warned share vs false alarms, closed-loop comparison, an example collision |
 | `data/processed/ngsim/replay_val_traces.npz` | Validation replay (local only) |
 
+## Results (4,037 test events, 62 h; thresholds from 1,167 validation events)
+
+### RQ1: ranking of pre-failure moments (failure onset within 3 s; 3,586 positive steps, rate 0.17 %)
+
+| Monitor | AUROC [95 % CI] | AUPRC [95 % CI] |
+|---|---|---|
+| uncertainty | 0.720 [0.692–0.758] | 0.0084 [0.0068–0.0117] |
+| ttc | 0.769 [0.738–0.800] | 0.0201 [0.0147–0.0277] |
+| thw | 0.893 [0.873–0.915] | 0.0414 [0.0254–0.0719] |
+| kinematic (ttc or thw) | 0.880 [0.862–0.903] | 0.0404 [0.0291–0.0584] |
+| combined (+ uncertainty) | 0.873 [0.856–0.898] | 0.0371 [0.0266–0.0540] |
+
+Ensemble disagreement is clearly informative (AUROC well above 0.5, AUPRC about 5× the base rate), but it ranks pre-failure moments worse than time headway alone, and the confidence intervals do not overlap with the kinematic monitor.
+
+### RQ2: warnings at an alarm budget of 2 % of normal driving
+
+| Monitor | Failures warned in the 3 s before onset | Median lead time | False alarms per hour | Alarm time on test |
+|---|---|---|---|---|
+| uncertainty | 49.3 % | 0.9 s | 76.0 | 0.7 % |
+| kinematic | 93.4 % | 1.0 s | 42.0 | 2.0 % |
+| combined | 90.4 % | 0.8 s | 49.7 | 1.4 % |
+
+Of 136 failure events, 1 was warned only by uncertainty, 61 only by the kinematic monitor, 66 by both and 8 by neither. Ensemble disagreement was lower on test than on validation (mean 0.038 vs 0.045 m/s²), so the uncertainty monitor used only 0.7 % alarm time on test; its alarms are also more fragmented (more, shorter episodes), which raises its false-alarm count.
+
+### RQ3: closed loop, alarm hands control to the fallback (≥ 2 s)
+
+| Setup | Collisions | Events with violation | Spacing RMSE vs human | RMS jerk | Interventions per hour | Time in fallback |
+|---|---|---|---|---|---|---|
+| fallback IDM only | 0 | 6 | 4.96 m | 1.52 m/s³ | – | – |
+| GRU only | 30 | 125 | 4.32 m | 0.79 m/s³ | – | – |
+| GRU + kinematic | **0** | **8** | 4.61 m | 1.66 m/s³ | 38.5 | 2.8 % |
+| GRU + uncertainty | 9 | 67 | 4.48 m | 1.37 m/s³ | 36.4 | 3.2 % |
+| GRU + combined | 0 | 11 | 4.59 m | 1.61 m/s³ | 35.8 | 3.2 % |
+
+### Answers
+
+1. **RQ1/RQ2:** On in-distribution traffic, ensemble disagreement does rise before failures, but it is clearly weaker than a TTC/headway monitor and almost never catches a failure the kinematic monitor misses (1 of 136).
+2. **RQ3:** A hybrid of the learned policy, a kinematic monitor and a rule-based fallback removes all 30 collisions and reaches nearly the fallback's safety (8 vs 6 violation events), while staying more human-like than the fallback alone (spacing RMSE 4.61 vs 4.96 m). The fallback is active 2.8 % of the time.
+3. Adding uncertainty to the kinematic monitor at the same alarm budget does not help (11 vs 8 violation events): the budget is split across more signals.
+4. **Cost:** hard switching between controllers doubles RMS jerk compared with the GRU alone (1.66 vs 0.79 m/s³). Blending instead of switching is an obvious improvement.
+
+These are in-distribution results. The open question carried into Phases 4–5 is whether disagreement becomes more useful in situations unlike the training data, where kinematic signals may react late.
+
 ## Limitations
 
 - In-distribution only: training, validation and test all come from NGSIM. Whether uncertainty becomes more useful on unfamiliar data is tested with highD and the scenario search (Phases 4–5).

@@ -162,6 +162,8 @@ def run(cfg: dict, log=print, max_events: int | None = None) -> dict:
         }
     )
     rd = Path(s["report_dir"])
+    if max_events:  # subset runs never overwrite the full results
+        rd = rd.with_name(f"{rd.name}_subset{max_events}")
     rd.mkdir(parents=True, exist_ok=True)
     (rd / "safety_metrics.json").write_text(json.dumps(out, indent=2))
     _plot(out, test, scores, mt, thr, main_b, rd / "safety_report.png", dt)

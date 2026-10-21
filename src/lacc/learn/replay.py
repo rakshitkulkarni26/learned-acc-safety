@@ -293,10 +293,15 @@ def run(cfg: dict, log=print) -> dict:
     out = {"idm_spacing_calibration": idm_sp, "idm_accel_params": acc_params, "results": results}
 
     rdir = Path(rcfg["report_dir"])
+    sub = rcfg.get("max_events")
+    if sub:  # subset runs never overwrite the full results
+        rdir = rdir.with_name(f"{rdir.name}_subset{sub}")
     rdir.mkdir(parents=True, exist_ok=True)
     (rdir / "replay_metrics.json").write_text(json.dumps(out, indent=2))
     pd.concat(per_event).to_csv(rdir / "replay_per_event.csv", index=False)
     traces = Path(rcfg["traces_file"])
+    if sub:
+        traces = traces.with_name(f"{traces.stem}_subset{sub}{traces.suffix}")
     traces.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(
         traces,

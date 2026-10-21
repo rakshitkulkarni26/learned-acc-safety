@@ -31,7 +31,7 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 | 0 | Repo, CI, deterministic simulator, IDM baseline, KPIs, experiment protocol | ✅ |
 | 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits — **11,982 events, 163 vehicle-hours** | ✅ |
 | 2 | Learned policy: GRU deep ensemble — **30 % lower acceleration RMSE than calibrated IDM**; closed-loop replay on 4,037 test events | ✅ |
-| 3 | Failure labels, uncertainty vs kinematic monitors at equal alarm budget, monitor-triggered fallback | 🟡 code done, results pending |
+| 3 | Uncertainty vs TTC/headway monitors at equal alarm budget; monitor-triggered fallback — **hybrid removes all 30 collisions** | ✅ |
 | 4 | Plausibility-constrained scenario search, OpenSCENARIO + esmini replay | ⏳ |
 | 5 | Bayesian optimisation, highD cross-dataset, technical report | ⏳ |
 
@@ -76,7 +76,16 @@ Results (test split, 4,037 events, 62 h): the GRU ensemble is the most human-lik
 lacc safety evaluate        # uncertainty vs TTC/headway monitors; fallback on alarm
 ```
 
-Method: [`docs/SAFETY.md`](docs/SAFETY.md).
+Results on the test split (thresholds set on validation, alarm budget 2 % of normal driving):
+
+| | Collisions | Events with violation | Spacing RMSE vs human |
+|---|---|---|---|
+| Rule-based fallback (IDM) only | 0 | 6 | 4.96 m |
+| Learned policy (GRU ensemble) only | 30 | 125 | 4.32 m |
+| GRU + TTC/headway monitor → fallback | **0** | **8** | 4.61 m |
+| GRU + uncertainty monitor → fallback | 9 | 67 | 4.48 m |
+
+Ensemble disagreement does rise before failures (AUROC 0.72) but is clearly weaker than a TTC/headway monitor (0.88) on in-distribution traffic, and it caught only 1 of 136 failures that the kinematic monitor missed. Whether it helps more on unfamiliar scenarios is the next question. Method and full results: [`docs/SAFETY.md`](docs/SAFETY.md).
 
 
 ## Repository layout

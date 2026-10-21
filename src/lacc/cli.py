@@ -208,7 +208,8 @@ def main(argv: list[str] | None = None) -> None:
             f"  {'Human (recorded)':<32}    -       -         -          -      "
             f"{h['events_with_violation']:>5} / {h['events']}"
         )
-        print(f"\nReport: {cfg['replay']['report_dir']}/replay_report.png")
+        rd = cfg["replay"]["report_dir"] + (f"_subset{args.max_events}" if args.max_events else "")
+        print(f"\nReport: {rd}/replay_report.png")
 
     elif args.cmd == "safety" and args.safety_cmd == "evaluate":
         from .learn.train import load_config
@@ -217,7 +218,8 @@ def main(argv: list[str] | None = None) -> None:
         cfg = load_config(args.config)
         out = run_safety(cfg, max_events=args.max_events)
         _print_safety(out)
-        print(f"\nReport: {cfg['safety']['report_dir']}/safety_report.png")
+        rd = cfg["safety"]["report_dir"] + (f"_subset{args.max_events}" if args.max_events else "")
+        print(f"\nReport: {rd}/safety_report.png")
 
 
 def _print_safety(out: dict) -> None:
