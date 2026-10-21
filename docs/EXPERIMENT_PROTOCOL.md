@@ -64,3 +64,7 @@ The shield is a safe-distance check **inspired by** RSS (Shalev-Shwartz et al., 
 | Date | Change | Reason |
 |---|---|---|
 | 2026-10-20 | v0 created | – |
+| 2026-10-21 | Fallback for RQ3 is IDM calibrated on closed-loop spacing instead of an RSS-inspired braking shield | Simpler, and empirically safe on this data before any RQ3 experiment: 0 collisions and 6 violation events in 4,037 test events (Phase 2b). The RSS-inspired shield remains possible future work. |
+| 2026-10-21 | All monitors use the same delayed observation as the policy (input window ends 0.5 s before the decision) | Equal information timing, so monitors are compared on information content, not on sensor latency |
+| 2026-10-21 | Thresholds are set as an alarm budget (share of normal driving time in alarm) on the validation replay: 1 %, 2 % (main), 5 % | Makes monitors with different scales comparable; thresholds never see test data |
+| 2026-10-21 | "Kinematic" monitor = TTC or time headway (max of their validation percentiles); "combined" = kinematic or uncertainty | Matches the protocol's baselines 3–5 at an equal alarm budget |

@@ -96,6 +96,14 @@ def main(argv: list[str] | None = None) -> None:
     rp.add_argument("--config", type=Path, default=Path("configs/policy_gru.yaml"))
     rp.add_argument("--max-events", type=int, help="replay a random subset for a quick test")
 
+    saf = sub.add_parser("safety", help="failure warnings and fallback (Phase 3)")
+    saf_sub = saf.add_subparsers(dest="safety_cmd", required=True)
+    ev = saf_sub.add_parser("evaluate", help="monitors offline + closed-loop fallback on test")
+    ev.add_argument("--config", type=Path, default=Path("configs/policy_gru.yaml"))
+    ev.add_argument(
+        "--max-events", type=int, help="use a random subset of test events (quick test)"
+    )
+
     args = parser.parse_args(argv)
 
     if args.cmd == "demo":
@@ -201,6 +209,64 @@ def main(argv: list[str] | None = None) -> None:
             f"{h['events_with_violation']:>5} / {h['events']}"
         )
         print(f"\nReport: {cfg['replay']['report_dir']}/replay_report.png")
+
+    elif args.cmd == "safety" and args.safety_cmd == "evaluate":
+        from .learn.train import load_config
+        from .safety.run import run as run_safety
+
+        cfg = load_config(args.config)
+        out = run_safety(cfg, max_events=args.max_events)
+        _print_safety(out)
+        print(f"\nReport: {cfg['safety']['report_dir']}/safety_report.png")
+
+
+def _print_safety(out: dict) -> None:
+    s = out["settings"]
+    h, b = str(s["main_horizon_s"]), str(s["main_alarm_budget"])
+    rk = out["offline"]["ranking"][h]
+    print(
+        f"\nRQ1  Failure onset within {h} s"
+        f"  (positives {rk['positives']:,}, rate {rk['positive_rate']:.4f})"
+    )
+    print("     monitor        AUROC [95% CI]          AUPRC [95% CI]")
+    for m in ("uncertainty", "ttc", "thw", "kinematic", "combined"):
+        r = rk[m]
+        print(
+            f"     {m:<13} {r['auroc']:.3f} [{r['auroc_ci95'][0]:.3f}-{r['auroc_ci95'][1]:.3f}]"
+            f"    {r['auprc']:.4f} [{r['auprc_ci95'][0]:.4f}-{r['auprc_ci95'][1]:.4f}]"
+        )
+    al = out["offline"]["alarms"][b]
+    print(
+        f"\nRQ2  Alarm budget {float(b) * 100:.0f} % of normal driving (thresholds from validation)"
+    )
+    print("     monitor        warned   median lead   false alarms/h   alarm time (test)")
+    for m in ("uncertainty", "kinematic", "combined"):
+        r = al[m]
+        print(
+            f"     {m:<13} {r['warned_share'] * 100:5.1f} %    {r['median_lead_s']:5.1f} s"
+            f"        {r['false_alarms_per_hour']:6.1f}"
+            f"          {r['alarm_time_share'] * 100:4.1f} %"
+        )
+    c = out["offline"]["complementarity_main"]
+    print(
+        f"     failures warned only by uncertainty: {c['uncertainty_only']}, only by kinematic: "
+        f"{c['kinematic_only']}, by both: {c['both']}, by neither: {c['neither']}"
+    )
+    print(
+        "\nRQ3  Closed loop on test        collisions  events w/ violation  spacing RMSE  RMS jerk"
+        "  interventions/h  fallback time"
+    )
+    for name, r in out["closed_loop"].items():
+        extra = (
+            f"   {r['interventions_per_hour']:8.1f}       {r['fallback_time_share'] * 100:5.1f} %"
+            if "interventions_per_hour" in r
+            else ""
+        )
+        print(
+            f"     {name:<26} {r['collisions']:>6}"
+            f"     {r['events_with_violation']:>6} / {r['events']}"
+            f"      {r['spacing_rmse_mean']:6.2f} m   {r['rms_jerk']:5.2f}{extra}"
+        )
 
 
 if __name__ == "__main__":

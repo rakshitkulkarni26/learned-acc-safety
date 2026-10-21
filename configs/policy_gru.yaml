@@ -39,3 +39,15 @@ replay:                       # Phase 2b: closed-loop replay (docs/POLICY.md)
   seed: 0
   report_dir: reports/replay
   traces_file: data/processed/ngsim/replay_test_traces.npz
+
+safety:                         # Phase 3: monitors and fallback (docs/SAFETY.md)
+  val_traces: data/processed/ngsim/replay_val_traces.npz
+  test_traces: data/processed/ngsim/replay_test_traces.npz
+  horizons_s: [1.5, 3.0, 5.0]   # protocol: 3 s main, 1.5 s and 5 s sensitivity
+  main_horizon_s: 3.0
+  alarm_budgets: [0.01, 0.02, 0.05]   # share of normal driving time in alarm (set on validation)
+  main_alarm_budget: 0.02
+  fallback_hold_s: 2.0          # minimum time the fallback keeps control after an alarm
+  n_boot: 200                   # bootstrap resamples (by event) for 95 % CIs
+  bootstrap_stride: 5           # use every 5th step (0.5 s) inside the bootstrap
+  report_dir: reports/safety

@@ -71,13 +71,17 @@ RMSE and MAE of acceleration; Gaussian NLL using total variance; mean epistemic 
 
 A unit test confirms that replaying the human's recorded accelerations reproduces the recorded gap exactly, so the simulator is consistent with the data.
 
-### Preliminary observation (trial models: 2 members, 100k windows, 4 epochs; 300 test events)
+### Results (5-member ensemble, 15 epochs; all 4,037 test events, 62 h)
 
-| Controller | Spacing RMSE mean / median | Collisions | Events with violation |
-|---|---|---|---|
-| IDM, acceleration-calibrated | 20.3 / 11.1 m | 1 | 56 |
-| IDM, spacing-calibrated | 5.2 / 3.9 m | 0 | 1 |
-| GRU ensemble | 4.5 / 3.7 m | 21 | 36 |
-| Human (recorded) | – | 0 | 22 |
+Open loop (acceleration RMSE, m/s²): predict 0: 0.84 / 0.81 (val / test); IDM textbook: 2.19 / 2.13; IDM calibrated: 0.76 / 0.73; **GRU ensemble: 0.55 / 0.50**. Mean epistemic std 0.045 / 0.038 m/s²; Spearman correlation between epistemic std and absolute error 0.16 on both splits. Validation NLL was still decreasing at epoch 15, so longer training may help further.
 
-The learned policy is the most human-like on average but collides in about 7 % of events, mostly when approaching a stopped or slow leader in stop-and-go traffic (it brakes at most about −2 m/s², more gently than the human) or by creeping into a stopped leader at very low speed. Both are typical behaviour-cloning weaknesses: regression towards average behaviour and no notion of "hold still". In the 3 s before a collision, ensemble disagreement was about twice its average. These numbers come from trial models and are replaced by the full-ensemble results.
+Closed loop:
+
+| Controller | Spacing RMSE mean / median | Speed RMSE | Collisions | Events with violation |
+|---|---|---|---|---|
+| IDM, acceleration-calibrated | 19.0 / 10.0 m | 1.87 m/s | 1 | 824 |
+| IDM, spacing-calibrated | 5.0 / 3.8 m | 0.98 m/s | 0 | 6 |
+| **GRU ensemble** | **4.3 / 3.6 m** | **0.81 m/s** | **30** | 125 |
+| Human (recorded) | – | – | 0 | 198 |
+
+The learned policy is the most human-like controller and has fewer violation events than the recorded humans, but it collides in 0.7 % of events, while spacing-calibrated IDM never does. A trial ensemble (2 members, 4 epochs, 100k windows) had collided in 7 % of a 300-event subset; full training reduced this to 0.7 % (2 of the same 300 events). Character of the 30 collisions: mostly low-speed contact in stop-and-go traffic. In 19 the leader had stopped and the ego was below 5 km/h; the median closing speed at impact is 3.5 km/h (90th percentile 6.5 km/h, maximum 19.7 km/h). In the 3 s before impact the policy braked about as hard as the human did in the same situation (median minimum acceleration −2.85 vs −2.72 m/s²), so the failures are mainly stopping slightly too late or creeping forward, not a lack of braking authority. (The trial ensemble additionally showed too-gentle braking; full training removed most of that.)

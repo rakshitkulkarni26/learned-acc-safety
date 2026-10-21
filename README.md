@@ -30,8 +30,8 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 |---|---|---|
 | 0 | Repo, CI, deterministic simulator, IDM baseline, KPIs, experiment protocol | ✅ |
 | 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits — **11,982 events, 163 vehicle-hours** | ✅ |
-| 2 | Learned policy: GRU deep ensemble vs calibrated IDM, open loop and closed-loop replay | 🟡 full-ensemble results pending |
-| 3 | Failure labels, uncertainty vs TTC monitor, shield comparison | ⏳ |
+| 2 | Learned policy: GRU deep ensemble — **30 % lower acceleration RMSE than calibrated IDM**; closed-loop replay on 4,037 test events | ✅ |
+| 3 | Failure labels, uncertainty vs kinematic monitors at equal alarm budget, monitor-triggered fallback | 🟡 code done, results pending |
 | 4 | Plausibility-constrained scenario search, OpenSCENARIO + esmini replay | ⏳ |
 | 5 | Bayesian optimisation, highD cross-dataset, technical report | ⏳ |
 
@@ -68,14 +68,24 @@ lacc policy train           # 5-member GRU ensemble, compared with calibrated ID
 lacc policy replay          # closed loop: the model drives behind recorded leaders
 ```
 
-Design choices: [`docs/POLICY.md`](docs/POLICY.md).
+Results (test split, 4,037 events, 62 h): the GRU ensemble is the most human-like controller (spacing RMSE 4.3 m vs 5.0 m for spacing-calibrated IDM) but collides in 30 events (0.7 %), while spacing-calibrated IDM has none. Details: [`docs/POLICY.md`](docs/POLICY.md).
+
+## Failure warnings and fallback (Phase 3)
+
+```bash
+lacc safety evaluate        # uncertainty vs TTC/headway monitors; fallback on alarm
+```
+
+Method: [`docs/SAFETY.md`](docs/SAFETY.md).
+
 
 ## Repository layout
 
 ```
 src/lacc/        simulator, controllers, scenarios, metrics, CLI
 src/lacc/data/   NGSIM download, cleaning, smoothing, event extraction, splits
-src/lacc/learn/  training windows, GRU ensemble, IDM baselines, training
+src/lacc/learn/  training windows, GRU ensemble, IDM baselines, training, closed-loop replay
+src/lacc/safety/ failure labels, monitors, AUROC/AUPRC, monitor-triggered fallback
 tests/           unit tests, safety invariants, scenario regression, synthetic-data pipeline tests
 configs/         versioned scenario / controller / vehicle / data parameters
 docs/            experiment protocol (pre-registered definitions), data processing
