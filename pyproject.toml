@@ -22,8 +22,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4", "pytest-cov>=4.1", "ruff>=0.5"]
+ml = ["torch>=2.2"]
 # Added in later phases:
-# ml = ["torch>=2.2", "mlflow>=2.10"]
 # scenarios = ["scenariogeneration>=0.14"]
 
 [project.scripts]

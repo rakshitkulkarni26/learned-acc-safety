@@ -120,3 +120,20 @@ def test_prepare_end_to_end_from_csv(tmp_path):
     assert saved["events"]["events"] == 6
     # second run uses the cached interim file
     assert prepare(cfg_path)["events"]["events"] == 6
+
+
+def test_constant_speed_artefact_detection():
+    from lacc.data.smoothing import _raw_linear
+
+    rng = np.random.default_rng(0)
+    t = np.arange(100) * DT
+    exact = 50 + 12.0 * t  # perfectly linear: artefact
+    noisy = exact + rng.normal(0, 0.05, 100)  # real tracking noise: not an artefact
+    assert _raw_linear(exact, 21)[10:-10].all()
+    assert not _raw_linear(noisy, 21).any()
+
+
+def test_events_have_artefact_column(result):
+    events, report, _ = result
+    assert "artefact" in events.columns
+    assert report["events"]["artefact_share"] == 0.0  # synthetic data is noisy everywhere

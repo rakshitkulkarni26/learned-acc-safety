@@ -23,6 +23,20 @@ def window_frames(window_s: float, dt: float) -> int:
     return _odd(max(3, int(round(window_s / dt))))
 
 
+def _raw_linear(y: np.ndarray, window: int, tol_m: float = 1e-3) -> np.ndarray:
+    """True where the *raw* position is exactly linear over the whole centred window.
+
+    Real driving never has exactly zero acceleration for seconds while moving;
+    such stretches in NGSIM are processing artefacts (see docs/DATA.md).
+    """
+    n = len(y)
+    flat = np.zeros(n, dtype=bool)
+    flat[1:-1] = np.abs(y[2:] - 2 * y[1:-1] + y[:-2]) < tol_m
+    need = window - 2  # second differences inside the window
+    counts = np.convolve(flat.astype(int), np.ones(need, dtype=int), mode="same")
+    return counts >= need
+
+
 def segment_ids(df: pd.DataFrame) -> np.ndarray:
     """Continuous segments: a new segment starts at a new vehicle or a frame gap."""
     new = (
@@ -53,6 +67,7 @@ def smooth_kinematics(
     y_s = np.full_like(y, np.nan)
     v = np.full_like(y, np.nan)
     a = np.full_like(y, np.nan)
+    linear = np.zeros(len(y), dtype=bool)
 
     # Filter output near segment ends is biased (the window is one-sided there),
     # so half an acceleration window is trimmed from both ends of every segment.
@@ -66,9 +81,10 @@ def smooth_kinematics(
         y_s[inner] = savgol_filter(yy, w_pos, 2)[trim:-trim]
         v[inner] = savgol_filter(yy, w_pos, 2, deriv=1, delta=dt)[trim:-trim]
         a[inner] = savgol_filter(yy, w_acc, 3, deriv=2, delta=dt)[trim:-trim]
+        linear[inner] = _raw_linear(yy, w_acc)[trim:-trim]
         kept += 1
 
-    out = df.assign(y_s=y_s, v=v, a=a, segment=seg)
+    out = df.assign(y_s=y_s, v=v, a=a, raw_linear=linear, segment=seg)
     out = out[~np.isnan(out["y_s"].to_numpy())].reset_index(drop=True)
     stats = {
         "segments_total": int(len(starts)),

@@ -30,7 +30,7 @@ NGSIM / highD ─► data pipeline ─► learned policy (GRU deep ensemble) ─
 |---|---|---|
 | 0 | Repo, CI, deterministic simulator, IDM baseline, KPIs, experiment protocol | ✅ |
 | 1 | NGSIM pipeline: recording detection, smoothing, event extraction, leakage-safe splits — **11,982 events, 163 vehicle-hours** | ✅ |
-| 2 | Learned policy: GRU deep ensemble, closed-loop check | ⏳ |
+| 2 | Learned policy: GRU deep ensemble vs calibrated IDM, open loop and closed-loop replay | 🟡 full-ensemble results pending |
 | 3 | Failure labels, uncertainty vs TTC monitor, shield comparison | ⏳ |
 | 4 | Plausibility-constrained scenario search, OpenSCENARIO + esmini replay | ⏳ |
 | 5 | Bayesian optimisation, highD cross-dataset, technical report | ⏳ |
@@ -59,11 +59,23 @@ lacc data prepare           # car-following events + data quality report
 
 Processing choices and their validation: [`docs/DATA.md`](docs/DATA.md).
 
+## Learned policy (Phase 2)
+
+```bash
+pip install -e ".[dev,ml]"  # adds PyTorch
+lacc policy windows         # events -> 3 s input windows + targets
+lacc policy train           # 5-member GRU ensemble, compared with calibrated IDM
+lacc policy replay          # closed loop: the model drives behind recorded leaders
+```
+
+Design choices: [`docs/POLICY.md`](docs/POLICY.md).
+
 ## Repository layout
 
 ```
 src/lacc/        simulator, controllers, scenarios, metrics, CLI
 src/lacc/data/   NGSIM download, cleaning, smoothing, event extraction, splits
+src/lacc/learn/  training windows, GRU ensemble, IDM baselines, training
 tests/           unit tests, safety invariants, scenario regression, synthetic-data pipeline tests
 configs/         versioned scenario / controller / vehicle / data parameters
 docs/            experiment protocol (pre-registered definitions), data processing

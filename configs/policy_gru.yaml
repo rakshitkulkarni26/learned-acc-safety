@@ -1,0 +1,41 @@
+# Phase 2: learned car-following policy (GRU deep ensemble).
+# Choices are explained in docs/POLICY.md.
+events: data/processed/ngsim/events.parquet
+windows_file: data/processed/ngsim/windows.npz
+out_dir: models/gru_ensemble
+report_dir: reports/policy_gru
+dt: 0.1
+
+windows:
+  history_s: 3.0     # input length: last 3 s of [gap, ego speed, relative speed]
+  delay_s: 0.5       # input ends 0.5 s before the target (reaction time; no future info)
+  stride_s: 0.5      # one sample every 0.5 s along each event
+
+exclude_artefacts: true   # drop constant-speed artefact targets (docs/DATA.md)
+
+model:
+  n_features: 3
+  hidden: 64
+  layers: 1
+
+train:
+  members: 5            # ensemble size
+  epochs: 15
+  patience: 3           # early stopping on validation NLL
+  batch_size: 1024
+  lr: 0.001
+  weight_decay: 0.0
+  seed: 0               # member k uses seed + k
+  device: auto          # cuda if available, else cpu
+  max_train_windows: null   # e.g. 50000 for a quick trial run
+
+replay:                       # Phase 2b: closed-loop replay (docs/POLICY.md)
+  split: test
+  max_events: null            # e.g. 300 for a quick run
+  a_min: -8.0                 # m/s^2, actuator limits applied to every controller
+  a_max: 4.0
+  calibration_events: 300     # training events used to calibrate IDM on spacing
+  calibration_max_steps: 600  # first 60 s of each calibration event
+  seed: 0
+  report_dir: reports/replay
+  traces_file: data/processed/ngsim/replay_test_traces.npz

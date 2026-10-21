@@ -82,6 +82,20 @@ def main(argv: list[str] | None = None) -> None:
     prep = data_sub.add_parser("prepare", help="clean, smooth, extract events, split")
     prep.add_argument("--config", type=Path, default=Path("configs/data_ngsim.yaml"))
 
+    pol = sub.add_parser("policy", help="learned car-following policy (Phase 2)")
+    pol_sub = pol.add_subparsers(dest="policy_cmd", required=True)
+    win = pol_sub.add_parser("windows", help="slice events into training windows")
+    win.add_argument("--config", type=Path, default=Path("configs/policy_gru.yaml"))
+    tr = pol_sub.add_parser("train", help="train the GRU ensemble and evaluate it")
+    tr.add_argument("--config", type=Path, default=Path("configs/policy_gru.yaml"))
+    tr.add_argument("--members", type=int, help="override ensemble size (e.g. 1 for a quick test)")
+    tr.add_argument(
+        "--max-train-windows", type=int, help="subsample training data for a quick test"
+    )
+    rp = pol_sub.add_parser("replay", help="closed-loop replay of test events (Phase 2b)")
+    rp.add_argument("--config", type=Path, default=Path("configs/policy_gru.yaml"))
+    rp.add_argument("--max-events", type=int, help="replay a random subset for a quick test")
+
     args = parser.parse_args(argv)
 
     if args.cmd == "demo":
@@ -110,6 +124,83 @@ def main(argv: list[str] | None = None) -> None:
         for w in report["warnings"]:
             print(f"WARNING: {w}")
         print("\nReport: reports/data_ngsim/data_report.json and data_report.png")
+
+    elif args.cmd == "policy" and args.policy_cmd == "windows":
+        from .learn.train import load_config, make_windows
+
+        cfg = load_config(args.config)
+        print(f"Building windows from {cfg['events']} ...")
+        for split, info in make_windows(cfg).items():
+            print(
+                f"  {split:<5} {info['windows']:>9,} windows  {info['events']:>6,} events"
+                f"  ({info['artefact_targets']:,} artefact targets)"
+            )
+        print(f"Saved {cfg['windows_file']}")
+
+    elif args.cmd == "policy" and args.policy_cmd == "train":
+        from .learn.train import load_config, train_ensemble
+
+        cfg = load_config(args.config)
+        if args.members:
+            cfg["train"]["members"] = args.members
+        if args.max_train_windows:
+            cfg["train"]["max_train_windows"] = args.max_train_windows
+        m = train_ensemble(cfg)
+        print("\nOpen-loop RMSE of acceleration [m/s^2]       val     test")
+        for key, label in [
+            ("rmse_zero", "predict 0"),
+            ("rmse_idm_default", "IDM, textbook parameters"),
+            ("rmse_idm_calibrated", "IDM, calibrated on train"),
+            ("rmse_gru_ensemble", "GRU ensemble"),
+        ]:
+            print(f"  {label:<38} {m['val'][key]:6.3f}   {m['test'][key]:6.3f}")
+        print(
+            f"\nMean epistemic std  val {m['val']['mean_epistemic_std']:.3f}"
+            f"  test {m['test']['mean_epistemic_std']:.3f} m/s^2"
+        )
+        print(
+            "Spearman(epistemic std, |error|)  "
+            + "  ".join(
+                f"{s} {m[s]['spearman_epistemic_vs_abs_error']:.2f}"
+                if m[s]["spearman_epistemic_vs_abs_error"] is not None
+                else f"{s} n/a (needs 2+ members)"
+                for s in ("val", "test")
+            )
+        )
+        print(f"\nModels: {cfg['out_dir']}   Report: {cfg['report_dir']}/policy_report.png")
+
+    elif args.cmd == "policy" and args.policy_cmd == "replay":
+        from .learn.replay import run
+        from .learn.train import load_config
+
+        cfg = load_config(args.config)
+        if args.max_events:
+            cfg["replay"]["max_events"] = args.max_events
+        out = run(cfg)
+        r = out["results"]
+        names = [
+            ("idm_accel_calibrated", "IDM, calibrated on acceleration"),
+            ("idm_spacing_calibrated", "IDM, calibrated on spacing"),
+            ("gru_ensemble", "GRU ensemble"),
+        ]
+        print(
+            "\nClosed-loop replay                 spacing RMSE [m]  speed RMSE  collisions"
+            "  events w/ violation"
+        )
+        print("                                   mean   median     [m/s]")
+        for key, label in names:
+            x = r[key]
+            print(
+                f"  {label:<32} {x['spacing_rmse_mean']:5.2f}  {x['spacing_rmse_median']:6.2f}"
+                f"   {x['speed_rmse_mean']:6.2f}     {x['collisions']:>5}     "
+                f"{x['events_with_violation']:>5} / {x['events']}"
+            )
+        h = r["human"]
+        print(
+            f"  {'Human (recorded)':<32}    -       -         -          -      "
+            f"{h['events_with_violation']:>5} / {h['events']}"
+        )
+        print(f"\nReport: {cfg['replay']['report_dir']}/replay_report.png")
 
 
 if __name__ == "__main__":

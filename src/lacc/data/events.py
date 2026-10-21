@@ -61,6 +61,7 @@ def extract_events(
             "y_s",
             "v_ego",
             "a_ego",
+            "raw_linear",
         ]
     ]
 
@@ -90,13 +91,17 @@ def extract_events(
     ev = merged[(length >= min_len) & ~run_bad].copy()
     ev["event_id"] = pd.factorize(ev["run"])[0].astype(np.int32)
     ev["t"] = (ev["frame_id"] - ev.groupby("event_id")["frame_id"].transform("min")) * dt
+    # Constant-speed artefact: raw position exactly linear for a full window while moving.
+    # Standstill (v ~ 0) is genuine and is not flagged.
+    ev["artefact"] = ev["raw_linear"] & (ev["v_ego"] > 0.5)
     ev = ev[
         [
             "event_id", "location", "recording", "ego_id", "leader_id", "frame_id", "t", "lane",
-            "gap", "v_ego", "v_lead", "a_ego", "a_lead", "class_lead",
+            "gap", "v_ego", "v_lead", "a_ego", "a_lead", "class_lead", "artefact",
         ]
     ].reset_index(drop=True)  # fmt: skip
 
     stats["events"] = int(ev["event_id"].nunique())
     stats["event_hours"] = round(len(ev) * dt / 3600, 2)
+    stats["artefact_share"] = round(float(ev["artefact"].mean()), 3)
     return ev, stats

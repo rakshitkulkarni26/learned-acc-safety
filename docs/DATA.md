@@ -92,7 +92,7 @@ Following `docs/EXPERIMENT_PROTOCOL.md`:
 
 ## Known limitations
 
-- **Constant-speed artefacts in the published data.** 29 % of raw samples have `v_Acc` exactly 0 and 36 % have exactly linear positions (second difference < 1 mm), often at speeds that are multiples of 5 ft/s. NGSIM's own speed column shows the same pattern, so it originates in the data, not in this pipeline. How to handle it (mask, down-weight, or rely more on highD) is decided before Phase 2 training.
+- **Constant-speed artefacts in the published data.** 29 % of raw samples have `v_Acc` exactly 0 and 36 % have exactly linear positions (second difference < 1 mm), often at speeds that are multiples of 5 ft/s. NGSIM's own speed column shows the same pattern, so it originates in the data, not in this pipeline. Measured strictly (raw position exactly linear over the full 2 s window while the ego moves faster than 0.5 m/s), only **3.4 % of event samples** are affected; most exact zeros are short or at standstill. These samples carry the column `artefact = True` and are excluded as training targets in Phase 2 (`exclude_artefacts` in `configs/policy_gru.yaml`).
 - **Mostly congested traffic** (median 27 km/h, frequent standstill), below typical ACC operating speeds.
 
 - NGSIM contains tracking errors that smoothing cannot fully remove; the plausibility filters catch only the gross ones.
